@@ -221,6 +221,7 @@ var config = require('./config'),
         transition: require('./transition'),
         observer: require('./observer')
     }
+// 这里设置 config.globalAssets 值,因为在compiler.js
 ViewModel.options = config.globalAssets = {
     directives: require('./directives'),
     filters: require('./filters'),
@@ -231,6 +232,7 @@ ViewModel.options = config.globalAssets = {
 
 /**
  *  Expose asset registration methods
+ *  这里好像是扩展例如指令这些.
  */
 assetTypes.forEach(function(type) {
     ViewModel[type] = function(id, value) {
@@ -398,26 +400,30 @@ function inheritOptions(child, parent, topLevel) {
 module.exports = ViewModel
 });
 require.register("vue/src/emitter.js", function(exports, require, module){
-var slice = [].slice
+var slice = [].slice;
+var fileName = 'emitter.js';
+var utils = require('./utils');
 
-function Emitter (ctx) {
+function Emitter(ctx) {
     this._ctx = ctx || this
 }
 
 var EmitterProto = Emitter.prototype
 
-EmitterProto.on = function (event, fn) {
+EmitterProto.on = function(event, fn) {
+    // utils.log('vm instance methods/event: $on', fileName);
     this._cbs = this._cbs || {}
-    ;(this._cbs[event] = this._cbs[event] || [])
-        .push(fn)
+        ; (this._cbs[event] = this._cbs[event] || [])
+            .push(fn)
     return this
 }
 
-EmitterProto.once = function (event, fn) {
+EmitterProto.once = function(event, fn) {
+    // utils.log('vm instance methods/event: $once', fileName);
     var self = this
     this._cbs = this._cbs || {}
 
-    function on () {
+    function on() {
         self.off(event, on)
         fn.apply(this, arguments)
     }
@@ -427,7 +433,8 @@ EmitterProto.once = function (event, fn) {
     return this
 }
 
-EmitterProto.off = function (event, fn) {
+EmitterProto.off = function(event, fn) {
+    // utils.log('vm instance methods/event: $off', fileName);
     this._cbs = this._cbs || {}
 
     // all
@@ -462,7 +469,7 @@ EmitterProto.off = function (event, fn) {
  *  The internal, faster emit with fixed amount of arguments
  *  using Function.call
  */
-EmitterProto.emit = function (event, a, b, c) {
+EmitterProto.emit = function(event, a, b, c) {
     this._cbs = this._cbs || {}
     var callbacks = this._cbs[event]
 
@@ -479,7 +486,8 @@ EmitterProto.emit = function (event, a, b, c) {
 /**
  *  The external emit using Function.apply
  */
-EmitterProto.applyEmit = function (event) {
+EmitterProto.applyEmit = function(event) {
+    // utils.log('vm instance methods/event: $emit', fileName);
     this._cbs = this._cbs || {}
     var callbacks = this._cbs[event], args
 
@@ -527,6 +535,7 @@ var config = require('./config'),
     THIS_RE = /[^\w]this[^\w]/,
     BRACKET_RE_S = /\['([^']+)'\]/g,
     BRACKET_RE_D = /\["([^"]+)"\]/g,
+    fileName = "utils.js",
     ViewModel // late def
 
 var defer =
@@ -606,6 +615,8 @@ var utils = module.exports = {
     /**
      *  Create a prototype-less object
      *  which is a better hash/map
+     * 创建一个纯净的空对象.
+     * https://stackoverflow.com/questions/24678660/object-createnull-in-javascript-creating-new-top-level-objects
      */
     hash: function() {
         return Object.create(null)
@@ -624,11 +635,13 @@ var utils = module.exports = {
     },
 
     /**
+     *  定义不可枚举的对象属性
      *  Define an ienumerable property
      *  This avoids it being included in JSON.stringify
      *  or for...in loops.
      */
     defProtected: function(obj, key, val, enumerable, writable) {
+        utils.log('object define: ' + key, fileName);
         def(obj, key, {
             value: val,
             enumerable: enumerable,
@@ -969,7 +982,6 @@ var Emitter = require('./emitter'),
  * 核心方法,对DOM进行编译
  */
 function Compiler(vm, options) {
-    utils.log('Compiler DOM start!!!', fileName);
     var compiler = this,
         key, i
 
@@ -994,8 +1006,6 @@ function Compiler(vm, options) {
      */
     // initialize element
     var el = compiler.el = compiler.setupElement(options)
-    utils.log('new VM instance, el info: ' + el.tagName + ', id: ' + el.id, fileName)
-
     // set other compiler properties
     compiler.vm = el.vue_vm = vm
     compiler.bindings = utils.hash()
@@ -1003,6 +1013,7 @@ function Compiler(vm, options) {
     compiler.deferred = []
     compiler.computed = []
     compiler.children = []
+    // 创建 分布/订阅模式 Emitter
     compiler.emitter = new Emitter(vm)
 
     // VM ---------------------------------------------------------------------
@@ -1032,14 +1043,12 @@ function Compiler(vm, options) {
     // setup observer
     // this is necesarry for all hooks and data observation events
     compiler.setupObserver()
-
     // create bindings for computed properties
     if (options.methods) {
         for (key in options.methods) {
             compiler.createBinding(key)
         }
     }
-
     // create bindings for methods
     if (options.computed) {
         for (key in options.computed) {
@@ -1100,6 +1109,7 @@ function Compiler(vm, options) {
     // this will convert data properties to getter/setters
     // and emit the first batch of set events, which will
     // in turn create the corresponding bindings.
+
     compiler.observeData(data)
 
     // COMPILE ----------------------------------------------------------------
@@ -1108,7 +1118,6 @@ function Compiler(vm, options) {
     if (options.template) {
         this.resolveContent()
     }
-
     // now parse the DOM and bind directives.
     // During this stage, we will also create bindings for
     // encountered keypaths that don't have a binding yet.
@@ -1144,7 +1153,6 @@ var CompilerProto = Compiler.prototype
  *  Fill it in with the template if necessary.
  */
 CompilerProto.setupElement = function(options) {
-    // debugger;
     // create the node first
     // 得到root元素
     var el = typeof options.el === 'string'
@@ -1277,7 +1285,7 @@ CompilerProto.setupObserver = function() {
         .on('get', onGet)
         .on('set', onSet)
         .on('mutate', onSet)
-
+    // start about hooks
     // register hooks
     var i = hooks.length, j, hook, fns
     while (i--) {
@@ -1303,6 +1311,7 @@ CompilerProto.setupObserver = function() {
         .on('hook:detached', function() {
             broadcast(0)
         })
+    // end about hooks
 
     function onGet(key) {
         check(key)
@@ -1402,6 +1411,7 @@ CompilerProto.compile = function(node, root) {
 /**
  *  Check for a priority directive
  *  If it is present and valid, return true to skip the rest
+ *  检查指令
  */
 CompilerProto.checkPriorityDir = function(dirname, node, root) {
     var expression, directive, Ctor
@@ -1431,9 +1441,9 @@ CompilerProto.checkPriorityDir = function(dirname, node, root) {
 
 /**
  *  Compile normal directives on a node
+ *  编译指令
  */
 CompilerProto.compileElement = function(node, root) {
-
     // textarea is pretty annoying
     // because its value creates childNodes which
     // we don't want to compile.
@@ -1534,9 +1544,9 @@ CompilerProto.compileElement = function(node, root) {
 
 /**
  *  Compile a text node
+ *  编译文字节点
  */
 CompilerProto.compileTextNode = function(node) {
-
     var tokens = TextParser.parse(node.nodeValue)
     if (!tokens) return
     var el, token, directive
@@ -1575,6 +1585,7 @@ CompilerProto.compileTextNode = function(node) {
 /**
  *  Parse a directive name/value pair into one or more
  *  directive instances
+ *  转化指令
  */
 CompilerProto.parseDirective = function(name, value, el, multiple) {
     var compiler = this,
@@ -1593,11 +1604,11 @@ CompilerProto.parseDirective = function(name, value, el, multiple) {
 
 /**
  *  Add a directive instance to the correct binding & viewmodel
+ *  添加指令到ViewModel
  */
 CompilerProto.bindDirective = function(directive, bindingOwner) {
-
     if (!directive) return
-
+    debugger;
     // keep track of it so we can unbind() later
     this.dirs.push(directive)
 
@@ -1630,7 +1641,6 @@ CompilerProto.bindDirective = function(directive, bindingOwner) {
     }
     binding.dirs.push(directive)
     directive.binding = binding
-
     var value = binding.val()
     // invoke bind hook if exists
     if (directive.bind) {
@@ -1997,14 +2007,29 @@ var Compiler = require('./compiler'),
  *  and a few reserved methods
  */
 function ViewModel(options) {
-    utils.log('VM, options: ' + JSON.stringify(options), fileName);
+    utils.log('create new VM, options: ' + JSON.stringify(options), fileName);
     // compile if options passed, if false return. options are passed directly to compiler
     if (options === false) return
     new Compiler(this, options)
 }
-// All VM prototype methods are inenumerable
-// so it can be stringified/looped through as raw data
+
+/**
+ * All VM prototype methods are inenumerable
+ * so it can be stringified/looped through as raw data
+ * 所有的viewModel原型**方法**都是不可枚举的,因此可以将其作为原始数据进行字符串化/循环处理
+ * 应用场景 :
+ * var demo = new Vue(); // 这里Vue 其实就是ViewModel;
+ * 在 ViewModel 原型上面定义的方法,可以在demo上面使用;并且所有方法因为都是不可枚举的.
+ */
 var VMProto = ViewModel.prototype
+
+/**
+ * vm instance methods: $init
+ * vm instance methods/data: $get | $set | $watch | $unwatch
+ * vm instance methods/lifecycle: $destroy
+ * vm instance methods/events: $broadcast | $dispatch | $emit | $on | $off | $once
+ * vm instance methods/dom: $appendTo | $remove | $before | $after
+ */
 
 /**
  *  init allows config compilation after instantiation:
@@ -2012,6 +2037,7 @@ var VMProto = ViewModel.prototype
  *    a.init(config)
  */
 def(VMProto, '$init', function(options) {
+    utils.log('vm instance methods: $init', fileName);
     new Compiler(this, options)
 })
 
@@ -2020,6 +2046,7 @@ def(VMProto, '$init', function(options) {
  *  a keypath
  */
 def(VMProto, '$get', function(key) {
+    utils.log('vm instance methods/data: $get', fileName);
     var val = utils.get(this, key)
     return val === undefined && this.$parent
         ? this.$parent.$get(key)
@@ -2031,6 +2058,7 @@ def(VMProto, '$get', function(key) {
  *  from a flat key string. Used in directives.
  */
 def(VMProto, '$set', function(key, value) {
+    utils.log('vm instance methods/data: $set', fileName);
     utils.set(this, key, value)
 })
 
@@ -2039,6 +2067,7 @@ def(VMProto, '$set', function(key, value) {
  *  fire callback with new value
  */
 def(VMProto, '$watch', function(key, callback) {
+    utils.log('vm instance methods/data: $watch', fileName);
     // save a unique id for each watcher
     var id = watcherId++,
         self = this
@@ -2060,6 +2089,7 @@ def(VMProto, '$watch', function(key, callback) {
  *  unwatch a key
  */
 def(VMProto, '$unwatch', function(key, callback) {
+    utils.log('vm instance methods/data: $unwatch', fileName);
     // workaround here
     // since the emitter module checks callback existence
     // by checking the length of arguments
@@ -2073,6 +2103,7 @@ def(VMProto, '$unwatch', function(key, callback) {
  *  unbind everything, remove everything
  */
 def(VMProto, '$destroy', function(noRemove) {
+    utils.log('vm instance methods/lifecycle: $destroy', fileName);
     this.$compiler.destroy(noRemove)
 })
 
@@ -2080,6 +2111,7 @@ def(VMProto, '$destroy', function(noRemove) {
  *  broadcast an event to all child VMs recursively.
  */
 def(VMProto, '$broadcast', function() {
+    utils.log('vm instance methods/events: $broadcast', fileName);
     var children = this.$compiler.children,
         i = children.length,
         child
@@ -2094,6 +2126,7 @@ def(VMProto, '$broadcast', function() {
  *  emit an event that propagates all the way up to parent VMs.
  */
 def(VMProto, '$dispatch', function() {
+    utils.log('vm instance methods/events: $dispatch', fileName);
     var compiler = this.$compiler,
         emitter = compiler.emitter,
         parent = compiler.parent
@@ -2114,6 +2147,7 @@ def(VMProto, '$dispatch', function() {
             ? 'applyEmit'
             : method
         def(VMProto, '$' + method, function() {
+            utils.log('vm instance methods/events: $' + method, fileName);
             var emitter = this.$compiler.emitter
             emitter[realMethod].apply(emitter, arguments)
         })
@@ -2122,6 +2156,7 @@ def(VMProto, '$dispatch', function() {
 // DOM convenience methods
 
 def(VMProto, '$appendTo', function(target, cb) {
+    utils.log('vm instance methods/dom: $appendTo', fileName);
     target = query(target)
     var el = this.$el
     transition(el, 1, function() {
@@ -2131,6 +2166,7 @@ def(VMProto, '$appendTo', function(target, cb) {
 })
 
 def(VMProto, '$remove', function(cb) {
+    utils.log('vm instance methods/dom: $remove', fileName);
     var el = this.$el
     transition(el, -1, function() {
         if (el.parentNode) {
@@ -2141,6 +2177,7 @@ def(VMProto, '$remove', function(cb) {
 })
 
 def(VMProto, '$before', function(target, cb) {
+    utils.log('vm instance methods/dom: $before', fileName);
     target = query(target)
     var el = this.$el
     transition(el, 1, function() {
@@ -2150,6 +2187,7 @@ def(VMProto, '$before', function(target, cb) {
 })
 
 def(VMProto, '$after', function(target, cb) {
+    utils.log('vm instance methods/dom: $after', fileName);
     target = query(target)
     var el = this.$el
     transition(el, 1, function() {
@@ -2172,9 +2210,9 @@ module.exports = ViewModel
 
 });
 require.register("vue/src/binding.js", function(exports, require, module){
-var Batcher        = require('./batcher'),
+var Batcher = require('./batcher'),
     bindingBatcher = new Batcher(),
-    bindingId      = 1
+    bindingId = 1
 
 /**
  *  Binding class.
@@ -2183,7 +2221,7 @@ var Batcher        = require('./batcher'),
  *  which has multiple directive instances on the DOM
  *  and multiple computed property dependents
  */
-function Binding (compiler, key, isExp, isFn) {
+function Binding(compiler, key, isExp, isFn) {
     this.id = bindingId++
     this.value = undefined
     this.isExp = !!isExp
@@ -2202,7 +2240,7 @@ var BindingProto = Binding.prototype
 /**
  *  Update value and queue instance updates.
  */
-BindingProto.update = function (value) {
+BindingProto.update = function(value) {
     if (!this.isComputed || this.isFn) {
         this.value = value
     }
@@ -2210,7 +2248,7 @@ BindingProto.update = function (value) {
         var self = this
         bindingBatcher.push({
             id: this.id,
-            execute: function () {
+            execute: function() {
                 if (!self.unbound) {
                     self._update()
                 }
@@ -2222,10 +2260,11 @@ BindingProto.update = function (value) {
 /**
  *  Actually update the directives.
  */
-BindingProto._update = function () {
+BindingProto._update = function() {
     var i = this.dirs.length,
         value = this.val()
     while (i--) {
+        debugger;
         this.dirs[i].$update(value)
     }
     this.pub()
@@ -2235,7 +2274,7 @@ BindingProto._update = function () {
  *  Return the valuated value regardless
  *  of whether it is computed or not
  */
-BindingProto.val = function () {
+BindingProto.val = function() {
     return this.isComputed && !this.isFn
         ? this.value.$get()
         : this.value
@@ -2245,7 +2284,7 @@ BindingProto.val = function () {
  *  Notify computed properties that depend on this binding
  *  to update themselves
  */
-BindingProto.pub = function () {
+BindingProto.pub = function() {
     var i = this.subs.length
     while (i--) {
         this.subs[i].update()
@@ -2255,7 +2294,7 @@ BindingProto.pub = function () {
 /**
  *  Unbind the binding, remove itself from all of its dependencies
  */
-BindingProto.unbind = function () {
+BindingProto.unbind = function() {
     // Indicate this has been unbound.
     // It's possible this binding will be in
     // the batcher's flush queue when its owner
@@ -2279,15 +2318,15 @@ module.exports = Binding
 require.register("vue/src/observer.js", function(exports, require, module){
 /* jshint proto:true */
 
-var Emitter  = require('./emitter'),
-    utils    = require('./utils'),
+var Emitter = require('./emitter'),
+    utils = require('./utils'),
     // cache methods
-    def      = utils.defProtected,
+    def = utils.defProtected,
     isObject = utils.isObject,
-    isArray  = Array.isArray,
-    hasOwn   = ({}).hasOwnProperty,
-    oDef     = Object.defineProperty,
-    slice    = [].slice,
+    isArray = Array.isArray,
+    hasOwn = ({}).hasOwnProperty,
+    oDef = Object.defineProperty,
+    slice = [].slice,
     // fix for IE + __proto__ problem
     // define methods as inenumerable if __proto__ is present,
     // otherwise enumerable so we can loop through and manually
@@ -2300,23 +2339,23 @@ var Emitter  = require('./emitter'),
 // an observed array
 var ArrayProxy = Object.create(Array.prototype)
 
-// intercept mutation methods
-;[
-    'push',
-    'pop',
-    'shift',
-    'unshift',
-    'splice',
-    'sort',
-    'reverse'
-].forEach(watchMutation)
+    // intercept mutation methods
+    ;[
+        'push',
+        'pop',
+        'shift',
+        'unshift',
+        'splice',
+        'sort',
+        'reverse'
+    ].forEach(watchMutation)
 
 // Augment the ArrayProxy with convenience methods
-def(ArrayProxy, '$set', function (index, data) {
+def(ArrayProxy, '$set', function(index, data) {
     return this.splice(index, 1, data)[0]
 }, !hasProto)
 
-def(ArrayProxy, '$remove', function (index) {
+def(ArrayProxy, '$remove', function(index) {
     if (typeof index !== 'number') {
         index = this.indexOf(index)
     }
@@ -2330,8 +2369,8 @@ def(ArrayProxy, '$remove', function (index) {
  *  we also analyze what elements are added/removed and link/unlink
  *  them with the parent Array.
  */
-function watchMutation (method) {
-    def(ArrayProxy, method, function () {
+function watchMutation(method) {
+    def(ArrayProxy, method, function() {
 
         var args = slice.call(arguments),
             result = Array.prototype[method].apply(this, args),
@@ -2346,22 +2385,22 @@ function watchMutation (method) {
             inserted = args.slice(2)
             removed = result
         }
-        
+
         // link & unlink
         linkArrayElements(this, inserted)
         unlinkArrayElements(this, removed)
 
         // emit the mutation event
         this.__emitter__.emit('mutate', '', this, {
-            method   : method,
-            args     : args,
-            result   : result,
-            inserted : inserted,
-            removed  : removed
+            method: method,
+            args: args,
+            result: result,
+            inserted: inserted,
+            removed: removed
         })
 
         return result
-        
+
     }, !hasProto)
 }
 
@@ -2369,7 +2408,7 @@ function watchMutation (method) {
  *  Link new elements to an Array, so when they change
  *  and emit events, the owner Array can be notified.
  */
-function linkArrayElements (arr, items) {
+function linkArrayElements(arr, items) {
     if (items) {
         var i = items.length, item, owners
         while (i--) {
@@ -2393,7 +2432,7 @@ function linkArrayElements (arr, items) {
 /**
  *  Unlink removed elements from the ex-owner Array.
  */
-function unlinkArrayElements (arr, items) {
+function unlinkArrayElements(arr, items) {
     if (items) {
         var i = items.length, item
         while (i--) {
@@ -2410,13 +2449,13 @@ function unlinkArrayElements (arr, items) {
 
 var ObjProxy = Object.create(Object.prototype)
 
-def(ObjProxy, '$add', function (key, val) {
+def(ObjProxy, '$add', function(key, val) {
     if (hasOwn.call(this, key)) return
     this[key] = val
     convertKey(this, key, true)
 }, !hasProto)
 
-def(ObjProxy, '$delete', function (key) {
+def(ObjProxy, '$delete', function(key) {
     if (!(hasOwn.call(this, key))) return
     // trigger set events
     this[key] = undefined
@@ -2429,22 +2468,22 @@ def(ObjProxy, '$delete', function (key) {
 /**
  *  Check if a value is watchable
  */
-function isWatchable (obj) {
+function isWatchable(obj) {
     return typeof obj === 'object' && obj && !obj.$compiler
 }
 
 /**
  *  Convert an Object/Array to give it a change emitter.
  */
-function convert (obj) {
+function convert(obj) {
     if (obj.__emitter__) return true
     var emitter = new Emitter()
     def(obj, '__emitter__', emitter)
     emitter
-        .on('set', function (key, val, propagate) {
+        .on('set', function(key, val, propagate) {
             if (propagate) propagateChange(obj)
         })
-        .on('mutate', function () {
+        .on('mutate', function() {
             propagateChange(obj)
         })
     emitter.values = utils.hash()
@@ -2455,9 +2494,10 @@ function convert (obj) {
 /**
  *  Propagate an array element's change to its owner arrays
  */
-function propagateChange (obj) {
+function propagateChange(obj) {
     var owners = obj.__emitter__.owners,
         i = owners.length
+    utils.log('hahaha');
     while (i--) {
         owners[i].__emitter__.emit('set', '', '', true)
     }
@@ -2466,7 +2506,7 @@ function propagateChange (obj) {
 /**
  *  Watch target based on its type
  */
-function watch (obj) {
+function watch(obj) {
     if (isArray(obj)) {
         watchArray(obj)
     } else {
@@ -2478,7 +2518,7 @@ function watch (obj) {
  *  Augment target objects with modified
  *  methods
  */
-function augment (target, src) {
+function augment(target, src) {
     if (hasProto) {
         target.__proto__ = src
     } else {
@@ -2491,7 +2531,7 @@ function augment (target, src) {
 /**
  *  Watch an Object, recursive.
  */
-function watchObject (obj) {
+function watchObject(obj) {
     augment(obj, ObjProxy)
     for (var key in obj) {
         convertKey(obj, key)
@@ -2502,7 +2542,7 @@ function watchObject (obj) {
  *  Watch an Array, overload mutation methods
  *  and add augmentations by intercepting the prototype chain
  */
-function watchArray (arr) {
+function watchArray(arr) {
     augment(arr, ArrayProxy)
     linkArrayElements(arr, arr)
 }
@@ -2512,7 +2552,7 @@ function watchArray (arr) {
  *  so it emits get/set events.
  *  Then watch the value itself.
  */
-function convertKey (obj, key, propagate) {
+function convertKey(obj, key, propagate) {
     var keyPrefix = key.charAt(0)
     if (keyPrefix === '$' || keyPrefix === '_') {
         return
@@ -2521,14 +2561,16 @@ function convertKey (obj, key, propagate) {
     // this means when an object is observed it will emit
     // a first batch of set events.
     var emitter = obj.__emitter__,
-        values  = emitter.values
+        values = emitter.values
 
     init(obj[key], propagate)
 
+    // 使用 Object.defineProperty() 定义 get/set 方法,可以监听所有数据
     oDef(obj, key, {
         enumerable: true,
         configurable: true,
-        get: function () {
+        get: function() {
+            debugger;
             var value = values[key]
             // only emit get on tip values
             if (pub.shouldGet) {
@@ -2536,7 +2578,7 @@ function convertKey (obj, key, propagate) {
             }
             return value
         },
-        set: function (newVal) {
+        set: function(newVal) {
             var oldVal = values[key]
             unobserve(oldVal, key, emitter)
             copyPaths(newVal, oldVal)
@@ -2546,7 +2588,7 @@ function convertKey (obj, key, propagate) {
         }
     })
 
-    function init (val, propagate) {
+    function init(val, propagate) {
         values[key] = val
         emitter.emit('set', key, val, propagate)
         if (isArray(val)) {
@@ -2562,7 +2604,7 @@ function convertKey (obj, key, propagate) {
  *  the watch conversion and simply emit set event for
  *  all of its properties.
  */
-function emitSet (obj) {
+function emitSet(obj) {
     var emitter = obj && obj.__emitter__
     if (!emitter) return
     if (isArray(obj)) {
@@ -2583,7 +2625,7 @@ function emitSet (obj) {
  *  So when an object changes, all missing keys will
  *  emit a set event with undefined value.
  */
-function copyPaths (newObj, oldObj) {
+function copyPaths(newObj, oldObj) {
     if (!isObject(newObj) || !isObject(oldObj)) {
         return
     }
@@ -2607,7 +2649,7 @@ function copyPaths (newObj, oldObj) {
  *  walk along a path and make sure it can be accessed
  *  and enumerated in that object
  */
-function ensurePath (obj, key) {
+function ensurePath(obj, key) {
     var path = key.split('.'), sec
     for (var i = 0, d = path.length - 1; i < d; i++) {
         sec = path[i]
@@ -2632,8 +2674,7 @@ function ensurePath (obj, key) {
  *  Observe an object with a given path,
  *  and proxy get/set/mutate events to the provided observer.
  */
-function observe (obj, rawPath, observer) {
-
+function observe(obj, rawPath, observer) {
     if (!isWatchable(obj)) return
 
     var path = rawPath ? rawPath + '.' : '',
@@ -2645,10 +2686,10 @@ function observe (obj, rawPath, observer) {
     // can be removed when the object is un-observed.
     observer.proxies = observer.proxies || {}
     var proxies = observer.proxies[path] = {
-        get: function (key) {
+        get: function(key) {
             observer.emit('get', path + key)
         },
-        set: function (key, val, propagate) {
+        set: function(key, val, propagate) {
             if (key) observer.emit('set', path + key, val)
             // also notify observer that the object itself changed
             // but only do so when it's a immediate property. this
@@ -2657,7 +2698,7 @@ function observe (obj, rawPath, observer) {
                 observer.emit('set', rawPath, obj, true)
             }
         },
-        mutate: function (key, val, mutation) {
+        mutate: function(key, val, mutation) {
             // if the Array is a root value
             // the key will be null
             var fixedPath = key ? path + key : rawPath
@@ -2689,7 +2730,7 @@ function observe (obj, rawPath, observer) {
 /**
  *  Cancel observation, turn off the listeners.
  */
-function unobserve (obj, path, observer) {
+function unobserve(obj, path, observer) {
 
     if (!obj || !obj.__emitter__) return
 
@@ -2713,41 +2754,40 @@ var pub = module.exports = {
 
     // whether to emit get events
     // only enabled during dependency parsing
-    shouldGet   : false,
+    shouldGet: false,
 
-    observe     : observe,
-    unobserve   : unobserve,
-    ensurePath  : ensurePath,
-    copyPaths   : copyPaths,
-    watch       : watch,
-    convert     : convert,
-    convertKey  : convertKey
+    observe: observe,
+    unobserve: unobserve,
+    ensurePath: ensurePath,
+    copyPaths: copyPaths,
+    watch: watch,
+    convert: convert,
+    convertKey: convertKey
 }
 });
 require.register("vue/src/directive.js", function(exports, require, module){
-var dirId           = 1,
-    ARG_RE          = /^[^\{\?]+$/,
+var dirId = 1,
+    ARG_RE = /^[^\{\?]+$/,
     FILTER_TOKEN_RE = /[^\s'"]+|'[^']+'|"[^"]+"/g,
-    NESTING_RE      = /^\$(parent|root)\./,
-    SINGLE_VAR_RE   = /^[\w\.$]+$/,
-    QUOTE_RE        = /"/g,
-    TextParser      = require('./text-parser')
+    NESTING_RE = /^\$(parent|root)\./,
+    SINGLE_VAR_RE = /^[\w\.$]+$/,
+    QUOTE_RE = /"/g,
+    TextParser = require('./text-parser')
 
 /**
  *  Directive class
  *  represents a single directive instance in the DOM
  */
-function Directive (name, ast, definition, compiler, el) {
-
-    this.id             = dirId++
-    this.name           = name
-    this.compiler       = compiler
-    this.vm             = compiler.vm
-    this.el             = el
+function Directive(name, ast, definition, compiler, el) {
+    this.id = dirId++
+    this.name = name
+    this.compiler = compiler
+    this.vm = compiler.vm
+    this.el = el
     this.computeFilters = false
-    this.key            = ast.key
-    this.arg            = ast.arg
-    this.expression     = ast.expression
+    this.key = ast.key
+    this.arg = ast.arg
+    this.expression = ast.expression
 
     var isEmpty = this.expression === ''
 
@@ -2813,7 +2853,7 @@ var DirProto = Directive.prototype
  *  for computed properties, this will only be called once
  *  during initialization.
  */
-DirProto.$update = function (value, init) {
+DirProto.$update = function(value, init) {
     if (this.$lock) return
     if (init || value !== this.value || (value && typeof value === 'object')) {
         this.value = value
@@ -2831,7 +2871,7 @@ DirProto.$update = function (value, init) {
 /**
  *  pipe the value through filters
  */
-DirProto.$applyFilters = function (value) {
+DirProto.$applyFilters = function(value) {
     var filtered = value, filter
     for (var i = 0, l = this.filters.length; i < l; i++) {
         filter = this.filters[i]
@@ -2843,7 +2883,7 @@ DirProto.$applyFilters = function (value) {
 /**
  *  Unbind diretive
  */
-DirProto.$unbind = function () {
+DirProto.$unbind = function() {
     // this can be called before the el is even assigned...
     if (!this.el || !this.vm) return
     if (this.unbind) this.unbind()
@@ -2856,17 +2896,16 @@ DirProto.$unbind = function () {
  *  Parse a directive string into an Array of
  *  AST-like objects representing directives
  */
-Directive.parse = function (str) {
-
+Directive.parse = function(str) {
     var inSingle = false,
         inDouble = false,
-        curly    = 0,
-        square   = 0,
-        paren    = 0,
-        begin    = 0,
+        curly = 0,
+        square = 0,
+        paren = 0,
+        begin = 0,
         argIndex = 0,
-        dirs     = [],
-        dir      = {},
+        dirs = [],
+        dir = {},
         lastFilterIndex = 0,
         arg
 
@@ -2922,7 +2961,7 @@ Directive.parse = function (str) {
         pushDir()
     }
 
-    function pushDir () {
+    function pushDir() {
         dir.expression = str.slice(begin, i).trim()
         if (dir.key === undefined) {
             dir.key = str.slice(argIndex, i).trim()
@@ -2934,7 +2973,7 @@ Directive.parse = function (str) {
         }
     }
 
-    function pushFilter () {
+    function pushFilter() {
         var exp = str.slice(lastFilterIndex, i).trim(),
             filter
         if (exp) {
@@ -2948,7 +2987,6 @@ Directive.parse = function (str) {
         }
         lastFilterIndex = i + 1
     }
-
     return dirs
 }
 
@@ -2956,7 +2994,7 @@ Directive.parse = function (str) {
  *  Inline computed filters so they become part
  *  of the expression
  */
-Directive.inlineFilters = function (key, filters) {
+Directive.inlineFilters = function(key, filters) {
     var args, filter
     for (var i = 0, l = filters.length; i < l; i++) {
         filter = filters[i]
@@ -2964,9 +3002,9 @@ Directive.inlineFilters = function (key, filters) {
             ? ',"' + filter.args.map(escapeQuote).join('","') + '"'
             : ''
         key = 'this.$compiler.getOption("filters", "' +
-                filter.name +
+            filter.name +
             '").call(this,' +
-                key + args +
+            key + args +
             ')'
     }
     return key
@@ -2976,7 +3014,7 @@ Directive.inlineFilters = function (key, filters) {
  *  Convert double quotes to single quotes
  *  so they don't mess up the generated function body
  */
-function escapeQuote (v) {
+function escapeQuote(v) {
     return v.indexOf('"') > -1
         ? v.replace(QUOTE_RE, '\'')
         : v
@@ -3324,21 +3362,22 @@ exports.setDelimiters = setDelimiters
 exports.delimiters    = [openChar, endChar]
 });
 require.register("vue/src/deps-parser.js", function(exports, require, module){
-var Emitter  = require('./emitter'),
-    utils    = require('./utils'),
+var Emitter = require('./emitter'),
+    utils = require('./utils'),
     Observer = require('./observer'),
-    catcher  = new Emitter()
+    catcher = new Emitter()
 
 /**
  *  Auto-extract the dependencies of a computed property
  *  by recording the getters triggered when evaluating it.
  */
-function catchDeps (binding) {
+function catchDeps(binding) {
+    debugger;
     if (binding.isFn) return
     utils.log('\n- ' + binding.key)
     var got = utils.hash()
     binding.deps = []
-    catcher.on('get', function (dep) {
+    catcher.on('get', function(dep) {
         var has = got[dep.key]
         if (
             // avoid duplicate bindings
@@ -3361,7 +3400,7 @@ function catchDeps (binding) {
 /**
  *  Test if A is a parent of or equals B
  */
-function isParentOf (a, b) {
+function isParentOf(a, b) {
     while (b) {
         if (a === b) {
             return true
@@ -3380,14 +3419,14 @@ module.exports = {
     /**
      *  parse a list of computed property bindings
      */
-    parse: function (bindings) {
+    parse: function(bindings) {
         utils.log('\nparsing dependencies...')
         Observer.shouldGet = true
         bindings.forEach(catchDeps)
         Observer.shouldGet = false
         utils.log('\ndone.')
     }
-    
+
 }
 });
 require.register("vue/src/filters.js", function(exports, require, module){
@@ -3818,13 +3857,14 @@ transition.sniff = sniffEndEvents
 require.register("vue/src/batcher.js", function(exports, require, module){
 var utils = require('./utils')
 
-function Batcher () {
+function Batcher() {
     this.reset()
 }
 
 var BatcherProto = Batcher.prototype
 
-BatcherProto.push = function (job) {
+BatcherProto.push = function(job) {
+    debugger;
     if (!job.id || !this.has[job.id]) {
         this.queue.push(job)
         this.has[job.id] = job
@@ -3840,7 +3880,7 @@ BatcherProto.push = function (job) {
     }
 }
 
-BatcherProto.flush = function () {
+BatcherProto.flush = function() {
     // before flush hook
     if (this._preFlush) this._preFlush()
     // do not cache length because more jobs might be pushed
@@ -3854,7 +3894,7 @@ BatcherProto.flush = function () {
     this.reset()
 }
 
-BatcherProto.reset = function () {
+BatcherProto.reset = function() {
     this.has = utils.hash()
     this.queue = []
     this.waiting = false
@@ -3863,8 +3903,8 @@ BatcherProto.reset = function () {
 module.exports = Batcher
 });
 require.register("vue/src/directives/index.js", function(exports, require, module){
-var utils      = require('../utils'),
-    config     = require('../config'),
+var utils = require('../utils'),
+    config = require('../config'),
     transition = require('../transition'),
     directives = module.exports = utils.hash()
 
@@ -3873,7 +3913,7 @@ var utils      = require('../utils'),
  */
 directives.component = {
     isLiteral: true,
-    bind: function () {
+    bind: function() {
         if (!this.el.vue_vm) {
             this.childVM = new this.Ctor({
                 el: this.el,
@@ -3881,7 +3921,7 @@ directives.component = {
             })
         }
     },
-    unbind: function () {
+    unbind: function() {
         if (this.childVM) {
             this.childVM.$destroy()
         }
@@ -3892,11 +3932,11 @@ directives.component = {
  *  Binding HTML attributes
  */
 directives.attr = {
-    bind: function () {
+    bind: function() {
         var params = this.vm.$options.paramAttributes
         this.isParam = params && params.indexOf(this.arg) > -1
     },
-    update: function (value) {
+    update: function(value) {
         if (value || value === 0) {
             this.el.setAttribute(this.arg, value)
         } else {
@@ -3912,12 +3952,13 @@ directives.attr = {
  *  Binding textContent
  */
 directives.text = {
-    bind: function () {
+    bind: function() {
         this.attr = this.el.nodeType === 3
             ? 'nodeValue'
             : 'textContent'
     },
-    update: function (value) {
+    update: function(value) {
+        debugger;
         this.el[this.attr] = utils.guard(value)
     }
 }
@@ -3925,10 +3966,10 @@ directives.text = {
 /**
  *  Binding CSS display property
  */
-directives.show = function (value) {
+directives.show = function(value) {
     var el = this.el,
         target = value ? '' : 'none',
-        change = function () {
+        change = function() {
             el.style.display = target
         }
     transition(el, value ? 1 : -1, change, this.compiler)
@@ -3937,7 +3978,7 @@ directives.show = function (value) {
 /**
  *  Binding CSS classes
  */
-directives['class'] = function (value) {
+directives['class'] = function(value) {
     if (this.arg) {
         utils[value ? 'addClass' : 'removeClass'](this.el, this.arg)
     } else {
@@ -3956,9 +3997,9 @@ directives['class'] = function (value) {
  */
 directives.cloak = {
     isEmpty: true,
-    bind: function () {
+    bind: function() {
         var el = this.el
-        this.compiler.observer.once('hook:ready', function () {
+        this.compiler.observer.once('hook:ready', function() {
             el.removeAttribute(config.prefix + '-cloak')
         })
     }
@@ -3969,13 +4010,13 @@ directives.cloak = {
  */
 directives.ref = {
     isLiteral: true,
-    bind: function () {
+    bind: function() {
         var id = this.expression
         if (id) {
             this.vm.$parent.$[id] = this.vm
         }
     },
-    unbind: function () {
+    unbind: function() {
         var id = this.expression
         if (id) {
             delete this.vm.$parent.$[id]
@@ -3983,15 +4024,15 @@ directives.ref = {
     }
 }
 
-directives.on      = require('./on')
-directives.repeat  = require('./repeat')
-directives.model   = require('./model')
-directives['if']   = require('./if')
+directives.on = require('./on')
+directives.repeat = require('./repeat')
+directives.model = require('./model')
+directives['if'] = require('./if')
 directives['with'] = require('./with')
-directives.html    = require('./html')
-directives.style   = require('./style')
+directives.html = require('./html')
+directives.style = require('./style')
 directives.partial = require('./partial')
-directives.view    = require('./view')
+directives.view = require('./view')
 });
 require.register("vue/src/directives/if.js", function(exports, require, module){
 var utils    = require('../utils')
@@ -4367,12 +4408,12 @@ var utils = require('../utils'),
 /**
  *  Returns an array of values from a multiple select
  */
-function getMultipleSelectOptions (select) {
+function getMultipleSelectOptions(select) {
     return filter
-        .call(select.options, function (option) {
+        .call(select.options, function(option) {
             return option.selected
         })
-        .map(function (option) {
+        .map(function(option) {
             return option.value || option.text
         })
 }
@@ -4382,12 +4423,12 @@ function getMultipleSelectOptions (select) {
  */
 module.exports = {
 
-    bind: function () {
-
+    bind: function() {
+        // debugger;
         var self = this,
-            el   = self.el,
+            el = self.el,
             type = el.type,
-            tag  = el.tagName
+            tag = el.tagName
 
         self.lock = false
         self.ownerVM = self.binding.compiler.vm
@@ -4395,8 +4436,8 @@ module.exports = {
         // determine what event to listen to
         self.event =
             (self.compiler.options.lazy ||
-            tag === 'SELECT' ||
-            type === 'checkbox' || type === 'radio')
+                tag === 'SELECT' ||
+                type === 'checkbox' || type === 'radio')
                 ? 'change'
                 : 'input'
 
@@ -4408,15 +4449,15 @@ module.exports = {
                 : 'innerHTML'
 
         // select[multiple] support
-        if(tag === 'SELECT' && el.hasAttribute('multiple')) {
+        if (tag === 'SELECT' && el.hasAttribute('multiple')) {
             this.multi = true
         }
 
         var compositionLock = false
-        self.cLock = function () {
+        self.cLock = function() {
             compositionLock = true
         }
-        self.cUnlock = function () {
+        self.cUnlock = function() {
             compositionLock = false
         }
         el.addEventListener('compositionstart', this.cLock)
@@ -4424,7 +4465,7 @@ module.exports = {
 
         // attach listener
         self.set = self.filters
-            ? function () {
+            ? function() {
                 if (compositionLock) return
                 // if this directive has filters
                 // we need to let the vm.$set trigger
@@ -4433,26 +4474,26 @@ module.exports = {
                 // so that after vm.$set changes the input
                 // value we can put the cursor back at where it is
                 var cursorPos
-                try { cursorPos = el.selectionStart } catch (e) {}
+                try {cursorPos = el.selectionStart} catch (e) { }
 
                 self._set()
 
                 // since updates are async
                 // we need to reset cursor position async too
-                utils.nextTick(function () {
+                utils.nextTick(function() {
                     if (cursorPos !== undefined) {
                         el.setSelectionRange(cursorPos, cursorPos)
                     }
                 })
             }
-            : function () {
+            : function() {
                 if (compositionLock) return
                 // no filters, don't let it trigger update()
                 self.lock = true
 
                 self._set()
 
-                utils.nextTick(function () {
+                utils.nextTick(function() {
                     self.lock = false
                 })
             }
@@ -4461,13 +4502,13 @@ module.exports = {
         // fix shit for IE9
         // since it doesn't fire input on backspace / del / cut
         if (isIE9) {
-            self.onCut = function () {
+            self.onCut = function() {
                 // cut event fires before the value actually changes
-                utils.nextTick(function () {
+                utils.nextTick(function() {
                     self.set()
                 })
             }
-            self.onDel = function (e) {
+            self.onDel = function(e) {
                 if (e.keyCode === 46 || e.keyCode === 8) {
                     self.set()
                 }
@@ -4477,15 +4518,16 @@ module.exports = {
         }
     },
 
-    _set: function () {
+    _set: function() {
         this.ownerVM.$set(
             this.key, this.multi
-                ? getMultipleSelectOptions(this.el)
-                : this.el[this.attr]
+            ? getMultipleSelectOptions(this.el)
+            : this.el[this.attr]
         )
     },
 
-    update: function (value, init) {
+    update: function(value, init) {
+        debugger;
         /* jshint eqeqeq: false */
         // sync back inline value if initial data is undefined
         if (init && value === undefined) {
@@ -4495,7 +4537,7 @@ module.exports = {
         var el = this.el
         if (el.tagName === 'SELECT') { // select dropdown
             el.selectedIndex = -1
-            if(this.multi && Array.isArray(value)) {
+            if (this.multi && Array.isArray(value)) {
                 value.forEach(this.updateSelect, this)
             } else {
                 this.updateSelect(value)
@@ -4509,7 +4551,7 @@ module.exports = {
         }
     },
 
-    updateSelect: function (value) {
+    updateSelect: function(value) {
         /* jshint eqeqeq: false */
         // setting <select>'s value in IE9 doesn't work
         // we have to manually loop through the options
@@ -4523,7 +4565,7 @@ module.exports = {
         }
     },
 
-    unbind: function () {
+    unbind: function() {
         var el = this.el
         el.removeEventListener(this.event, this.set)
         el.removeEventListener('compositionstart', this.cLock)
@@ -4788,7 +4830,7 @@ module.exports = {
 
 }
 });
-require.alias("vue/src/viewmodel.js", "vue/index.js");
+require.alias("vue/src/main.js", "vue/index.js");
 if (typeof exports == 'object') {
   module.exports = require('vue');
 } else if (typeof define == 'function' && define.amd) {

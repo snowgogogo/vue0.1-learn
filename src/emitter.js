@@ -1,23 +1,27 @@
-var slice = [].slice
+var slice = [].slice;
+var fileName = 'emitter.js';
+var utils = require('./utils');
 
-function Emitter (ctx) {
+function Emitter(ctx) {
     this._ctx = ctx || this
 }
 
 var EmitterProto = Emitter.prototype
 
-EmitterProto.on = function (event, fn) {
+EmitterProto.on = function(event, fn) {
+    // utils.log('vm instance methods/event: $on', fileName);
     this._cbs = this._cbs || {}
-    ;(this._cbs[event] = this._cbs[event] || [])
-        .push(fn)
+        ; (this._cbs[event] = this._cbs[event] || [])
+            .push(fn)
     return this
 }
 
-EmitterProto.once = function (event, fn) {
+EmitterProto.once = function(event, fn) {
+    // utils.log('vm instance methods/event: $once', fileName);
     var self = this
     this._cbs = this._cbs || {}
 
-    function on () {
+    function on() {
         self.off(event, on)
         fn.apply(this, arguments)
     }
@@ -27,7 +31,8 @@ EmitterProto.once = function (event, fn) {
     return this
 }
 
-EmitterProto.off = function (event, fn) {
+EmitterProto.off = function(event, fn) {
+    // utils.log('vm instance methods/event: $off', fileName);
     this._cbs = this._cbs || {}
 
     // all
@@ -62,7 +67,7 @@ EmitterProto.off = function (event, fn) {
  *  The internal, faster emit with fixed amount of arguments
  *  using Function.call
  */
-EmitterProto.emit = function (event, a, b, c) {
+EmitterProto.emit = function(event, a, b, c) {
     this._cbs = this._cbs || {}
     var callbacks = this._cbs[event]
 
@@ -79,7 +84,8 @@ EmitterProto.emit = function (event, a, b, c) {
 /**
  *  The external emit using Function.apply
  */
-EmitterProto.applyEmit = function (event) {
+EmitterProto.applyEmit = function(event) {
+    // utils.log('vm instance methods/event: $emit', fileName);
     this._cbs = this._cbs || {}
     var callbacks = this._cbs[event], args
 

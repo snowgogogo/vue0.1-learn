@@ -37,7 +37,6 @@ var Emitter = require('./emitter'),
  * 核心方法,对DOM进行编译
  */
 function Compiler(vm, options) {
-    utils.log('Compiler DOM start!!!', fileName);
     var compiler = this,
         key, i
 
@@ -62,8 +61,6 @@ function Compiler(vm, options) {
      */
     // initialize element
     var el = compiler.el = compiler.setupElement(options)
-    utils.log('new VM instance, el info: ' + el.tagName + ', id: ' + el.id, fileName)
-
     // set other compiler properties
     compiler.vm = el.vue_vm = vm
     compiler.bindings = utils.hash()
@@ -71,6 +68,7 @@ function Compiler(vm, options) {
     compiler.deferred = []
     compiler.computed = []
     compiler.children = []
+    // 创建 分布/订阅模式 Emitter
     compiler.emitter = new Emitter(vm)
 
     // VM ---------------------------------------------------------------------
@@ -100,14 +98,12 @@ function Compiler(vm, options) {
     // setup observer
     // this is necesarry for all hooks and data observation events
     compiler.setupObserver()
-
     // create bindings for computed properties
     if (options.methods) {
         for (key in options.methods) {
             compiler.createBinding(key)
         }
     }
-
     // create bindings for methods
     if (options.computed) {
         for (key in options.computed) {
@@ -168,6 +164,7 @@ function Compiler(vm, options) {
     // this will convert data properties to getter/setters
     // and emit the first batch of set events, which will
     // in turn create the corresponding bindings.
+
     compiler.observeData(data)
 
     // COMPILE ----------------------------------------------------------------
@@ -176,7 +173,6 @@ function Compiler(vm, options) {
     if (options.template) {
         this.resolveContent()
     }
-
     // now parse the DOM and bind directives.
     // During this stage, we will also create bindings for
     // encountered keypaths that don't have a binding yet.
@@ -212,7 +208,6 @@ var CompilerProto = Compiler.prototype
  *  Fill it in with the template if necessary.
  */
 CompilerProto.setupElement = function(options) {
-    // debugger;
     // create the node first
     // 得到root元素
     var el = typeof options.el === 'string'
@@ -345,7 +340,7 @@ CompilerProto.setupObserver = function() {
         .on('get', onGet)
         .on('set', onSet)
         .on('mutate', onSet)
-
+    // start about hooks
     // register hooks
     var i = hooks.length, j, hook, fns
     while (i--) {
@@ -371,6 +366,7 @@ CompilerProto.setupObserver = function() {
         .on('hook:detached', function() {
             broadcast(0)
         })
+    // end about hooks
 
     function onGet(key) {
         check(key)
@@ -470,6 +466,7 @@ CompilerProto.compile = function(node, root) {
 /**
  *  Check for a priority directive
  *  If it is present and valid, return true to skip the rest
+ *  检查指令
  */
 CompilerProto.checkPriorityDir = function(dirname, node, root) {
     var expression, directive, Ctor
@@ -499,9 +496,9 @@ CompilerProto.checkPriorityDir = function(dirname, node, root) {
 
 /**
  *  Compile normal directives on a node
+ *  编译指令
  */
 CompilerProto.compileElement = function(node, root) {
-
     // textarea is pretty annoying
     // because its value creates childNodes which
     // we don't want to compile.
@@ -602,9 +599,9 @@ CompilerProto.compileElement = function(node, root) {
 
 /**
  *  Compile a text node
+ *  编译文字节点
  */
 CompilerProto.compileTextNode = function(node) {
-
     var tokens = TextParser.parse(node.nodeValue)
     if (!tokens) return
     var el, token, directive
@@ -643,6 +640,7 @@ CompilerProto.compileTextNode = function(node) {
 /**
  *  Parse a directive name/value pair into one or more
  *  directive instances
+ *  转化指令
  */
 CompilerProto.parseDirective = function(name, value, el, multiple) {
     var compiler = this,
@@ -661,11 +659,11 @@ CompilerProto.parseDirective = function(name, value, el, multiple) {
 
 /**
  *  Add a directive instance to the correct binding & viewmodel
+ *  添加指令到ViewModel
  */
 CompilerProto.bindDirective = function(directive, bindingOwner) {
-
     if (!directive) return
-
+    debugger;
     // keep track of it so we can unbind() later
     this.dirs.push(directive)
 
@@ -698,7 +696,6 @@ CompilerProto.bindDirective = function(directive, bindingOwner) {
     }
     binding.dirs.push(directive)
     directive.binding = binding
-
     var value = binding.val()
     // invoke bind hook if exists
     if (directive.bind) {

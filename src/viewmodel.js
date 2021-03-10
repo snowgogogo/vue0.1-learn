@@ -17,14 +17,29 @@ var Compiler = require('./compiler'),
  *  and a few reserved methods
  */
 function ViewModel(options) {
-    utils.log('VM, options: ' + JSON.stringify(options), fileName);
+    utils.log('create new VM, options: ' + JSON.stringify(options), fileName);
     // compile if options passed, if false return. options are passed directly to compiler
     if (options === false) return
     new Compiler(this, options)
 }
-// All VM prototype methods are inenumerable
-// so it can be stringified/looped through as raw data
+
+/**
+ * All VM prototype methods are inenumerable
+ * so it can be stringified/looped through as raw data
+ * 所有的viewModel原型**方法**都是不可枚举的,因此可以将其作为原始数据进行字符串化/循环处理
+ * 应用场景 :
+ * var demo = new Vue(); // 这里Vue 其实就是ViewModel;
+ * 在 ViewModel 原型上面定义的方法,可以在demo上面使用;并且所有方法因为都是不可枚举的.
+ */
 var VMProto = ViewModel.prototype
+
+/**
+ * vm instance methods: $init
+ * vm instance methods/data: $get | $set | $watch | $unwatch
+ * vm instance methods/lifecycle: $destroy
+ * vm instance methods/events: $broadcast | $dispatch | $emit | $on | $off | $once
+ * vm instance methods/dom: $appendTo | $remove | $before | $after
+ */
 
 /**
  *  init allows config compilation after instantiation:
@@ -32,6 +47,7 @@ var VMProto = ViewModel.prototype
  *    a.init(config)
  */
 def(VMProto, '$init', function(options) {
+    utils.log('vm instance methods: $init', fileName);
     new Compiler(this, options)
 })
 
@@ -40,6 +56,7 @@ def(VMProto, '$init', function(options) {
  *  a keypath
  */
 def(VMProto, '$get', function(key) {
+    utils.log('vm instance methods/data: $get', fileName);
     var val = utils.get(this, key)
     return val === undefined && this.$parent
         ? this.$parent.$get(key)
@@ -51,6 +68,7 @@ def(VMProto, '$get', function(key) {
  *  from a flat key string. Used in directives.
  */
 def(VMProto, '$set', function(key, value) {
+    utils.log('vm instance methods/data: $set', fileName);
     utils.set(this, key, value)
 })
 
@@ -59,6 +77,7 @@ def(VMProto, '$set', function(key, value) {
  *  fire callback with new value
  */
 def(VMProto, '$watch', function(key, callback) {
+    utils.log('vm instance methods/data: $watch', fileName);
     // save a unique id for each watcher
     var id = watcherId++,
         self = this
@@ -80,6 +99,7 @@ def(VMProto, '$watch', function(key, callback) {
  *  unwatch a key
  */
 def(VMProto, '$unwatch', function(key, callback) {
+    utils.log('vm instance methods/data: $unwatch', fileName);
     // workaround here
     // since the emitter module checks callback existence
     // by checking the length of arguments
@@ -93,6 +113,7 @@ def(VMProto, '$unwatch', function(key, callback) {
  *  unbind everything, remove everything
  */
 def(VMProto, '$destroy', function(noRemove) {
+    utils.log('vm instance methods/lifecycle: $destroy', fileName);
     this.$compiler.destroy(noRemove)
 })
 
@@ -100,6 +121,7 @@ def(VMProto, '$destroy', function(noRemove) {
  *  broadcast an event to all child VMs recursively.
  */
 def(VMProto, '$broadcast', function() {
+    utils.log('vm instance methods/events: $broadcast', fileName);
     var children = this.$compiler.children,
         i = children.length,
         child
@@ -114,6 +136,7 @@ def(VMProto, '$broadcast', function() {
  *  emit an event that propagates all the way up to parent VMs.
  */
 def(VMProto, '$dispatch', function() {
+    utils.log('vm instance methods/events: $dispatch', fileName);
     var compiler = this.$compiler,
         emitter = compiler.emitter,
         parent = compiler.parent
@@ -134,6 +157,7 @@ def(VMProto, '$dispatch', function() {
             ? 'applyEmit'
             : method
         def(VMProto, '$' + method, function() {
+            utils.log('vm instance methods/events: $' + method, fileName);
             var emitter = this.$compiler.emitter
             emitter[realMethod].apply(emitter, arguments)
         })
@@ -142,6 +166,7 @@ def(VMProto, '$dispatch', function() {
 // DOM convenience methods
 
 def(VMProto, '$appendTo', function(target, cb) {
+    utils.log('vm instance methods/dom: $appendTo', fileName);
     target = query(target)
     var el = this.$el
     transition(el, 1, function() {
@@ -151,6 +176,7 @@ def(VMProto, '$appendTo', function(target, cb) {
 })
 
 def(VMProto, '$remove', function(cb) {
+    utils.log('vm instance methods/dom: $remove', fileName);
     var el = this.$el
     transition(el, -1, function() {
         if (el.parentNode) {
@@ -161,6 +187,7 @@ def(VMProto, '$remove', function(cb) {
 })
 
 def(VMProto, '$before', function(target, cb) {
+    utils.log('vm instance methods/dom: $before', fileName);
     target = query(target)
     var el = this.$el
     transition(el, 1, function() {
@@ -170,6 +197,7 @@ def(VMProto, '$before', function(target, cb) {
 })
 
 def(VMProto, '$after', function(target, cb) {
+    utils.log('vm instance methods/dom: $after', fileName);
     target = query(target)
     var el = this.$el
     transition(el, 1, function() {

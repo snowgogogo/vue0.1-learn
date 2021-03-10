@@ -7,6 +7,7 @@ var config = require('./config'),
     THIS_RE = /[^\w]this[^\w]/,
     BRACKET_RE_S = /\['([^']+)'\]/g,
     BRACKET_RE_D = /\["([^"]+)"\]/g,
+    fileName = "utils.js",
     ViewModel // late def
 
 var defer =
@@ -86,6 +87,8 @@ var utils = module.exports = {
     /**
      *  Create a prototype-less object
      *  which is a better hash/map
+     * 创建一个纯净的空对象.
+     * https://stackoverflow.com/questions/24678660/object-createnull-in-javascript-creating-new-top-level-objects
      */
     hash: function() {
         return Object.create(null)
@@ -104,11 +107,13 @@ var utils = module.exports = {
     },
 
     /**
+     *  定义不可枚举的对象属性
      *  Define an ienumerable property
      *  This avoids it being included in JSON.stringify
      *  or for...in loops.
      */
     defProtected: function(obj, key, val, enumerable, writable) {
+        utils.log('object define: ' + key, fileName);
         def(obj, key, {
             value: val,
             enumerable: enumerable,

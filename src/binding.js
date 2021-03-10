@@ -1,6 +1,6 @@
-var Batcher        = require('./batcher'),
+var Batcher = require('./batcher'),
     bindingBatcher = new Batcher(),
-    bindingId      = 1
+    bindingId = 1
 
 /**
  *  Binding class.
@@ -9,7 +9,7 @@ var Batcher        = require('./batcher'),
  *  which has multiple directive instances on the DOM
  *  and multiple computed property dependents
  */
-function Binding (compiler, key, isExp, isFn) {
+function Binding(compiler, key, isExp, isFn) {
     this.id = bindingId++
     this.value = undefined
     this.isExp = !!isExp
@@ -28,7 +28,7 @@ var BindingProto = Binding.prototype
 /**
  *  Update value and queue instance updates.
  */
-BindingProto.update = function (value) {
+BindingProto.update = function(value) {
     if (!this.isComputed || this.isFn) {
         this.value = value
     }
@@ -36,7 +36,7 @@ BindingProto.update = function (value) {
         var self = this
         bindingBatcher.push({
             id: this.id,
-            execute: function () {
+            execute: function() {
                 if (!self.unbound) {
                     self._update()
                 }
@@ -48,10 +48,11 @@ BindingProto.update = function (value) {
 /**
  *  Actually update the directives.
  */
-BindingProto._update = function () {
+BindingProto._update = function() {
     var i = this.dirs.length,
         value = this.val()
     while (i--) {
+        debugger;
         this.dirs[i].$update(value)
     }
     this.pub()
@@ -61,7 +62,7 @@ BindingProto._update = function () {
  *  Return the valuated value regardless
  *  of whether it is computed or not
  */
-BindingProto.val = function () {
+BindingProto.val = function() {
     return this.isComputed && !this.isFn
         ? this.value.$get()
         : this.value
@@ -71,7 +72,7 @@ BindingProto.val = function () {
  *  Notify computed properties that depend on this binding
  *  to update themselves
  */
-BindingProto.pub = function () {
+BindingProto.pub = function() {
     var i = this.subs.length
     while (i--) {
         this.subs[i].update()
@@ -81,7 +82,7 @@ BindingProto.pub = function () {
 /**
  *  Unbind the binding, remove itself from all of its dependencies
  */
-BindingProto.unbind = function () {
+BindingProto.unbind = function() {
     // Indicate this has been unbound.
     // It's possible this binding will be in
     // the batcher's flush queue when its owner

@@ -10,6 +10,7 @@ var config = require('./config'),
         transition: require('./transition'),
         observer: require('./observer')
     }
+// 这里设置 config.globalAssets 值,因为在compiler.js
 ViewModel.options = config.globalAssets = {
     directives: require('./directives'),
     filters: require('./filters'),
@@ -20,6 +21,7 @@ ViewModel.options = config.globalAssets = {
 
 /**
  *  Expose asset registration methods
+ *  这里好像是扩展例如指令这些.
  */
 assetTypes.forEach(function(type) {
     ViewModel[type] = function(id, value) {

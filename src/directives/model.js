@@ -5,12 +5,12 @@ var utils = require('../utils'),
 /**
  *  Returns an array of values from a multiple select
  */
-function getMultipleSelectOptions (select) {
+function getMultipleSelectOptions(select) {
     return filter
-        .call(select.options, function (option) {
+        .call(select.options, function(option) {
             return option.selected
         })
-        .map(function (option) {
+        .map(function(option) {
             return option.value || option.text
         })
 }
@@ -20,12 +20,12 @@ function getMultipleSelectOptions (select) {
  */
 module.exports = {
 
-    bind: function () {
-
+    bind: function() {
+        // debugger;
         var self = this,
-            el   = self.el,
+            el = self.el,
             type = el.type,
-            tag  = el.tagName
+            tag = el.tagName
 
         self.lock = false
         self.ownerVM = self.binding.compiler.vm
@@ -33,8 +33,8 @@ module.exports = {
         // determine what event to listen to
         self.event =
             (self.compiler.options.lazy ||
-            tag === 'SELECT' ||
-            type === 'checkbox' || type === 'radio')
+                tag === 'SELECT' ||
+                type === 'checkbox' || type === 'radio')
                 ? 'change'
                 : 'input'
 
@@ -46,15 +46,15 @@ module.exports = {
                 : 'innerHTML'
 
         // select[multiple] support
-        if(tag === 'SELECT' && el.hasAttribute('multiple')) {
+        if (tag === 'SELECT' && el.hasAttribute('multiple')) {
             this.multi = true
         }
 
         var compositionLock = false
-        self.cLock = function () {
+        self.cLock = function() {
             compositionLock = true
         }
-        self.cUnlock = function () {
+        self.cUnlock = function() {
             compositionLock = false
         }
         el.addEventListener('compositionstart', this.cLock)
@@ -62,7 +62,7 @@ module.exports = {
 
         // attach listener
         self.set = self.filters
-            ? function () {
+            ? function() {
                 if (compositionLock) return
                 // if this directive has filters
                 // we need to let the vm.$set trigger
@@ -71,26 +71,26 @@ module.exports = {
                 // so that after vm.$set changes the input
                 // value we can put the cursor back at where it is
                 var cursorPos
-                try { cursorPos = el.selectionStart } catch (e) {}
+                try {cursorPos = el.selectionStart} catch (e) { }
 
                 self._set()
 
                 // since updates are async
                 // we need to reset cursor position async too
-                utils.nextTick(function () {
+                utils.nextTick(function() {
                     if (cursorPos !== undefined) {
                         el.setSelectionRange(cursorPos, cursorPos)
                     }
                 })
             }
-            : function () {
+            : function() {
                 if (compositionLock) return
                 // no filters, don't let it trigger update()
                 self.lock = true
 
                 self._set()
 
-                utils.nextTick(function () {
+                utils.nextTick(function() {
                     self.lock = false
                 })
             }
@@ -99,13 +99,13 @@ module.exports = {
         // fix shit for IE9
         // since it doesn't fire input on backspace / del / cut
         if (isIE9) {
-            self.onCut = function () {
+            self.onCut = function() {
                 // cut event fires before the value actually changes
-                utils.nextTick(function () {
+                utils.nextTick(function() {
                     self.set()
                 })
             }
-            self.onDel = function (e) {
+            self.onDel = function(e) {
                 if (e.keyCode === 46 || e.keyCode === 8) {
                     self.set()
                 }
@@ -115,15 +115,16 @@ module.exports = {
         }
     },
 
-    _set: function () {
+    _set: function() {
         this.ownerVM.$set(
             this.key, this.multi
-                ? getMultipleSelectOptions(this.el)
-                : this.el[this.attr]
+            ? getMultipleSelectOptions(this.el)
+            : this.el[this.attr]
         )
     },
 
-    update: function (value, init) {
+    update: function(value, init) {
+        debugger;
         /* jshint eqeqeq: false */
         // sync back inline value if initial data is undefined
         if (init && value === undefined) {
@@ -133,7 +134,7 @@ module.exports = {
         var el = this.el
         if (el.tagName === 'SELECT') { // select dropdown
             el.selectedIndex = -1
-            if(this.multi && Array.isArray(value)) {
+            if (this.multi && Array.isArray(value)) {
                 value.forEach(this.updateSelect, this)
             } else {
                 this.updateSelect(value)
@@ -147,7 +148,7 @@ module.exports = {
         }
     },
 
-    updateSelect: function (value) {
+    updateSelect: function(value) {
         /* jshint eqeqeq: false */
         // setting <select>'s value in IE9 doesn't work
         // we have to manually loop through the options
@@ -161,7 +162,7 @@ module.exports = {
         }
     },
 
-    unbind: function () {
+    unbind: function() {
         var el = this.el
         el.removeEventListener(this.event, this.set)
         el.removeEventListener('compositionstart', this.cLock)

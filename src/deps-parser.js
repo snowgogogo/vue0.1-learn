@@ -1,18 +1,19 @@
-var Emitter  = require('./emitter'),
-    utils    = require('./utils'),
+var Emitter = require('./emitter'),
+    utils = require('./utils'),
     Observer = require('./observer'),
-    catcher  = new Emitter()
+    catcher = new Emitter()
 
 /**
  *  Auto-extract the dependencies of a computed property
  *  by recording the getters triggered when evaluating it.
  */
-function catchDeps (binding) {
+function catchDeps(binding) {
+    debugger;
     if (binding.isFn) return
     utils.log('\n- ' + binding.key)
     var got = utils.hash()
     binding.deps = []
-    catcher.on('get', function (dep) {
+    catcher.on('get', function(dep) {
         var has = got[dep.key]
         if (
             // avoid duplicate bindings
@@ -35,7 +36,7 @@ function catchDeps (binding) {
 /**
  *  Test if A is a parent of or equals B
  */
-function isParentOf (a, b) {
+function isParentOf(a, b) {
     while (b) {
         if (a === b) {
             return true
@@ -54,12 +55,12 @@ module.exports = {
     /**
      *  parse a list of computed property bindings
      */
-    parse: function (bindings) {
+    parse: function(bindings) {
         utils.log('\nparsing dependencies...')
         Observer.shouldGet = true
         bindings.forEach(catchDeps)
         Observer.shouldGet = false
         utils.log('\ndone.')
     }
-    
+
 }

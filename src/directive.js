@@ -1,26 +1,25 @@
-var dirId           = 1,
-    ARG_RE          = /^[^\{\?]+$/,
+var dirId = 1,
+    ARG_RE = /^[^\{\?]+$/,
     FILTER_TOKEN_RE = /[^\s'"]+|'[^']+'|"[^"]+"/g,
-    NESTING_RE      = /^\$(parent|root)\./,
-    SINGLE_VAR_RE   = /^[\w\.$]+$/,
-    QUOTE_RE        = /"/g,
-    TextParser      = require('./text-parser')
+    NESTING_RE = /^\$(parent|root)\./,
+    SINGLE_VAR_RE = /^[\w\.$]+$/,
+    QUOTE_RE = /"/g,
+    TextParser = require('./text-parser')
 
 /**
  *  Directive class
  *  represents a single directive instance in the DOM
  */
-function Directive (name, ast, definition, compiler, el) {
-
-    this.id             = dirId++
-    this.name           = name
-    this.compiler       = compiler
-    this.vm             = compiler.vm
-    this.el             = el
+function Directive(name, ast, definition, compiler, el) {
+    this.id = dirId++
+    this.name = name
+    this.compiler = compiler
+    this.vm = compiler.vm
+    this.el = el
     this.computeFilters = false
-    this.key            = ast.key
-    this.arg            = ast.arg
-    this.expression     = ast.expression
+    this.key = ast.key
+    this.arg = ast.arg
+    this.expression = ast.expression
 
     var isEmpty = this.expression === ''
 
@@ -86,7 +85,7 @@ var DirProto = Directive.prototype
  *  for computed properties, this will only be called once
  *  during initialization.
  */
-DirProto.$update = function (value, init) {
+DirProto.$update = function(value, init) {
     if (this.$lock) return
     if (init || value !== this.value || (value && typeof value === 'object')) {
         this.value = value
@@ -104,7 +103,7 @@ DirProto.$update = function (value, init) {
 /**
  *  pipe the value through filters
  */
-DirProto.$applyFilters = function (value) {
+DirProto.$applyFilters = function(value) {
     var filtered = value, filter
     for (var i = 0, l = this.filters.length; i < l; i++) {
         filter = this.filters[i]
@@ -116,7 +115,7 @@ DirProto.$applyFilters = function (value) {
 /**
  *  Unbind diretive
  */
-DirProto.$unbind = function () {
+DirProto.$unbind = function() {
     // this can be called before the el is even assigned...
     if (!this.el || !this.vm) return
     if (this.unbind) this.unbind()
@@ -129,17 +128,16 @@ DirProto.$unbind = function () {
  *  Parse a directive string into an Array of
  *  AST-like objects representing directives
  */
-Directive.parse = function (str) {
-
+Directive.parse = function(str) {
     var inSingle = false,
         inDouble = false,
-        curly    = 0,
-        square   = 0,
-        paren    = 0,
-        begin    = 0,
+        curly = 0,
+        square = 0,
+        paren = 0,
+        begin = 0,
         argIndex = 0,
-        dirs     = [],
-        dir      = {},
+        dirs = [],
+        dir = {},
         lastFilterIndex = 0,
         arg
 
@@ -195,7 +193,7 @@ Directive.parse = function (str) {
         pushDir()
     }
 
-    function pushDir () {
+    function pushDir() {
         dir.expression = str.slice(begin, i).trim()
         if (dir.key === undefined) {
             dir.key = str.slice(argIndex, i).trim()
@@ -207,7 +205,7 @@ Directive.parse = function (str) {
         }
     }
 
-    function pushFilter () {
+    function pushFilter() {
         var exp = str.slice(lastFilterIndex, i).trim(),
             filter
         if (exp) {
@@ -221,7 +219,6 @@ Directive.parse = function (str) {
         }
         lastFilterIndex = i + 1
     }
-
     return dirs
 }
 
@@ -229,7 +226,7 @@ Directive.parse = function (str) {
  *  Inline computed filters so they become part
  *  of the expression
  */
-Directive.inlineFilters = function (key, filters) {
+Directive.inlineFilters = function(key, filters) {
     var args, filter
     for (var i = 0, l = filters.length; i < l; i++) {
         filter = filters[i]
@@ -237,9 +234,9 @@ Directive.inlineFilters = function (key, filters) {
             ? ',"' + filter.args.map(escapeQuote).join('","') + '"'
             : ''
         key = 'this.$compiler.getOption("filters", "' +
-                filter.name +
+            filter.name +
             '").call(this,' +
-                key + args +
+            key + args +
             ')'
     }
     return key
@@ -249,7 +246,7 @@ Directive.inlineFilters = function (key, filters) {
  *  Convert double quotes to single quotes
  *  so they don't mess up the generated function body
  */
-function escapeQuote (v) {
+function escapeQuote(v) {
     return v.indexOf('"') > -1
         ? v.replace(QUOTE_RE, '\'')
         : v

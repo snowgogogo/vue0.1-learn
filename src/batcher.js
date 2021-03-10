@@ -1,12 +1,13 @@
 var utils = require('./utils')
 
-function Batcher () {
+function Batcher() {
     this.reset()
 }
 
 var BatcherProto = Batcher.prototype
 
-BatcherProto.push = function (job) {
+BatcherProto.push = function(job) {
+    debugger;
     if (!job.id || !this.has[job.id]) {
         this.queue.push(job)
         this.has[job.id] = job
@@ -22,7 +23,7 @@ BatcherProto.push = function (job) {
     }
 }
 
-BatcherProto.flush = function () {
+BatcherProto.flush = function() {
     // before flush hook
     if (this._preFlush) this._preFlush()
     // do not cache length because more jobs might be pushed
@@ -36,7 +37,7 @@ BatcherProto.flush = function () {
     this.reset()
 }
 
-BatcherProto.reset = function () {
+BatcherProto.reset = function() {
     this.has = utils.hash()
     this.queue = []
     this.waiting = false

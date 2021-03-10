@@ -1,5 +1,5 @@
-var utils      = require('../utils'),
-    config     = require('../config'),
+var utils = require('../utils'),
+    config = require('../config'),
     transition = require('../transition'),
     directives = module.exports = utils.hash()
 
@@ -8,7 +8,7 @@ var utils      = require('../utils'),
  */
 directives.component = {
     isLiteral: true,
-    bind: function () {
+    bind: function() {
         if (!this.el.vue_vm) {
             this.childVM = new this.Ctor({
                 el: this.el,
@@ -16,7 +16,7 @@ directives.component = {
             })
         }
     },
-    unbind: function () {
+    unbind: function() {
         if (this.childVM) {
             this.childVM.$destroy()
         }
@@ -27,11 +27,11 @@ directives.component = {
  *  Binding HTML attributes
  */
 directives.attr = {
-    bind: function () {
+    bind: function() {
         var params = this.vm.$options.paramAttributes
         this.isParam = params && params.indexOf(this.arg) > -1
     },
-    update: function (value) {
+    update: function(value) {
         if (value || value === 0) {
             this.el.setAttribute(this.arg, value)
         } else {
@@ -47,12 +47,13 @@ directives.attr = {
  *  Binding textContent
  */
 directives.text = {
-    bind: function () {
+    bind: function() {
         this.attr = this.el.nodeType === 3
             ? 'nodeValue'
             : 'textContent'
     },
-    update: function (value) {
+    update: function(value) {
+        debugger;
         this.el[this.attr] = utils.guard(value)
     }
 }
@@ -60,10 +61,10 @@ directives.text = {
 /**
  *  Binding CSS display property
  */
-directives.show = function (value) {
+directives.show = function(value) {
     var el = this.el,
         target = value ? '' : 'none',
-        change = function () {
+        change = function() {
             el.style.display = target
         }
     transition(el, value ? 1 : -1, change, this.compiler)
@@ -72,7 +73,7 @@ directives.show = function (value) {
 /**
  *  Binding CSS classes
  */
-directives['class'] = function (value) {
+directives['class'] = function(value) {
     if (this.arg) {
         utils[value ? 'addClass' : 'removeClass'](this.el, this.arg)
     } else {
@@ -91,9 +92,9 @@ directives['class'] = function (value) {
  */
 directives.cloak = {
     isEmpty: true,
-    bind: function () {
+    bind: function() {
         var el = this.el
-        this.compiler.observer.once('hook:ready', function () {
+        this.compiler.observer.once('hook:ready', function() {
             el.removeAttribute(config.prefix + '-cloak')
         })
     }
@@ -104,13 +105,13 @@ directives.cloak = {
  */
 directives.ref = {
     isLiteral: true,
-    bind: function () {
+    bind: function() {
         var id = this.expression
         if (id) {
             this.vm.$parent.$[id] = this.vm
         }
     },
-    unbind: function () {
+    unbind: function() {
         var id = this.expression
         if (id) {
             delete this.vm.$parent.$[id]
@@ -118,12 +119,12 @@ directives.ref = {
     }
 }
 
-directives.on      = require('./on')
-directives.repeat  = require('./repeat')
-directives.model   = require('./model')
-directives['if']   = require('./if')
+directives.on = require('./on')
+directives.repeat = require('./repeat')
+directives.model = require('./model')
+directives['if'] = require('./if')
 directives['with'] = require('./with')
-directives.html    = require('./html')
-directives.style   = require('./style')
+directives.html = require('./html')
+directives.style = require('./style')
 directives.partial = require('./partial')
-directives.view    = require('./view')
+directives.view = require('./view')
